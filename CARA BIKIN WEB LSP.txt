@@ -1,0 +1,228 @@
+CARA BIKIN WEB LSP
+
+-bikin 2 folder
+- masuk ke folder - open cmd
+- composer create-project laravel/laravel 
+- php artisan serve
+
+-php artisan make:model Buku -m (MEMBUAT MODEL BUKU)
+-Edit file migration di folder database/migrations/xxxx_xx_xx_create_bukus_table.php:
+-<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('bukus', function (Blueprint $table) {
+            $table->id();
+            $table->string('kode_buku')->unique();   // kode unik tiap buku
+            $table->string('judul');                 // judul buku
+            $table->string('pengarang');             // nama pengarang
+            $table->string('penerbit');              // nama penerbit
+            $table->year('tahun');                   // tahun terbit
+            $table->timestamps();                    // created_at & updated_at
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('bukus');
+    }
+};
+
+- klik tabel bukus → Insert → isi kode_buku, judul, dll. (BUAT ISI DATA BUKU DI PHPMYADMIN)
+-Buat controller resource:php artisan make:controller BukuController --resource
+Di dalam BukuController.php, isi method index:
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Buku;
+use Illuminate\Http\Request;
+
+class BukuController extends Controller
+{
+    // Menampilkan semua data buku
+    public function index()
+    {
+        $bukus = Buku::all();
+        return view('buku.index', compact('bukus'));
+    }
+
+    // Menampilkan form tambah buku
+    public function create()
+    {
+        return view('buku.create');
+    }
+
+    // Simpan data buku baru
+    public function store(Request $request)
+    {
+        $request->validate([
+            'kode_buku' => 'required|unique:bukus',
+            'judul' => 'required',
+            'pengarang' => 'required',
+            'penerbit' => 'required',
+            'tahun' => 'required|digits:4'
+        ]);
+
+        Buku::create($request->all());
+        return redirect()->route('buku.index')->with('success', 'Buku berhasil ditambahkan');
+    }
+
+    // Menampilkan detail satu buku
+    public function show(Buku $buku)
+    {
+        return view('buku.show', compact('buku'));
+    }
+
+    // Menampilkan form edit buku
+    public function edit(Buku $buku)
+    {
+        return view('buku.edit', compact('buku'));
+    }
+
+    // Update data buku
+    public function update(Request $request, Buku $buku)
+    {
+        $request->validate([
+            'kode_buku' => 'required',
+            'judul' => 'required',
+            'pengarang' => 'required',
+            'penerbit' => 'required',
+            'tahun' => 'required|digits:4'
+        ]);
+
+        $buku->update($request->all());
+        return redirect()->route('buku.index')->with('success', 'Buku berhasil diupdate');
+    }
+
+    // Hapus data buku
+    public function destroy(Buku $buku)
+    {
+        $buku->delete();
+        return redirect()->route('buku.index')->with('success', 'Buku berhasil dihapus');
+    }
+}
+
+- bikin folder buku di resources views
+-bikin file index.blade.php
+- masukin code ini 
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daftar Buku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+    <h1>Daftar Buku</h1>
+    <a href="{{ route('buku.create') }}" class="btn btn-primary mb-3">Tambah Buku</a>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Kode Buku</th>
+                <th>Judul</th>
+                <th>Pengarang</th>
+                <th>Penerbit</th>
+                <th>Tahun</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($bukus as $buku)
+            <tr>
+                <td>{{ $buku->kode_buku }}</td>
+                <td>{{ $buku->judul }}</td>
+                <td>{{ $buku->pengarang }}</td>
+                <td>{{ $buku->penerbit }}</td>
+                <td>{{ $buku->tahun }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</body>
+</html>
+
+-Routing (routes/web.php)
+Tambahkan resource route:
+use App\Http\Controllers\BukuController;
+
+Route::resource('buku', BukuController::class);
+
+
+
+
+
+
+
+
+
+
+php artisan migrate
+
+-ganti session database jadi file
+
+bisa ganti port biar ga bentrok 
+php artisan serve --port=8001
+
+TES KONEKSI DATABASE
+-pastikan di dalem folder project
+- lalu php artisan migrate
+
+php artisan migrate:fresh (cara apus table)
+
+CARA BUKA LOCALHOST
+http://localhost/LSP/public/admin/login
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
