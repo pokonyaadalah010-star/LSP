@@ -1,0 +1,451 @@
+CARA BIKIN WEB LSP
+
+-bikin 2 folder
+- masuk ke folder - open cmd
+- composer create-project laravel/laravel 
+- php artisan serve
+
+-php artisan make:model Buku -m (MEMBUAT MODEL BUKU)
+-Edit file migration di folder database/migrations/xxxx_xx_xx_create_bukus_table.php:
+-<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('bukus', function (Blueprint $table) {
+            $table->id();
+            $table->string('kode_buku')->unique();   // kode unik tiap buku
+            $table->string('judul');                 // judul buku
+            $table->string('pengarang');             // nama pengarang
+            $table->string('penerbit');              // nama penerbit
+            $table->year('tahun');                   // tahun terbit
+            $table->timestamps();                    // created_at & updated_at
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('bukus');
+    }
+};
+
+- klik tabel bukus → Insert → isi kode_buku, judul, dll. (BUAT ISI DATA BUKU DI PHPMYADMIN)
+-Buat controller resource:php artisan make:controller BukuController --resource
+Di dalam BukuController.php, isi method index:
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Buku;
+use Illuminate\Http\Request;
+
+class BukuController extends Controller
+{
+    // Menampilkan semua data buku
+    public function index()
+    {
+        $bukus = Buku::all();
+        return view('buku.index', compact('bukus'));
+    }
+
+    // Menampilkan form tambah buku
+    public function create()
+    {
+        return view('buku.create');
+    }
+
+    // Simpan data buku baru
+    public function store(Request $request)
+    {
+        $request->validate([
+            'kode_buku' => 'required|unique:bukus',
+            'judul' => 'required',
+            'pengarang' => 'required',
+            'penerbit' => 'required',
+            'tahun' => 'required|digits:4'
+        ]);
+
+        Buku::create($request->all());
+        return redirect()->route('buku.index')->with('success', 'Buku berhasil ditambahkan');
+    }
+
+    // Menampilkan detail satu buku
+    public function show(Buku $buku)
+    {
+        return view('buku.show', compact('buku'));
+    }
+
+    // Menampilkan form edit buku
+    public function edit(Buku $buku)
+    {
+        return view('buku.edit', compact('buku'));
+    }
+
+    // Update data buku
+    public function update(Request $request, Buku $buku)
+    {
+        $request->validate([
+            'kode_buku' => 'required',
+            'judul' => 'required',
+            'pengarang' => 'required',
+            'penerbit' => 'required',
+            'tahun' => 'required|digits:4'
+        ]);
+
+        $buku->update($request->all());
+        return redirect()->route('buku.index')->with('success', 'Buku berhasil diupdate');
+    }
+
+    // Hapus data buku
+    public function destroy(Buku $buku)
+    {
+        $buku->delete();
+        return redirect()->route('buku.index')->with('success', 'Buku berhasil dihapus');
+    }
+}
+
+- bikin folder buku di resources views
+-bikin file index.blade.php
+- masukin code ini 
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daftar Buku</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+    <h1>Daftar Buku</h1>
+    <a href="{{ route('buku.create') }}" class="btn btn-primary mb-3">Tambah Buku</a>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Kode Buku</th>
+                <th>Judul</th>
+                <th>Pengarang</th>
+                <th>Penerbit</th>
+                <th>Tahun</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($bukus as $buku)
+            <tr>
+                <td>{{ $buku->kode_buku }}</td>
+                <td>{{ $buku->judul }}</td>
+                <td>{{ $buku->pengarang }}</td>
+                <td>{{ $buku->penerbit }}</td>
+                <td>{{ $buku->tahun }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</body>
+</html>
+
+-Routing (routes/web.php)
+Tambahkan resource route:
+use App\Http\Controllers\BukuController;
+
+Route::resource('buku', BukuController::class);
+
+-php artisan make:controller AnggotaController --resource
+-php artisan make:model Anggota -m
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Anggota;
+use Illuminate\Http\Request;
+
+class AnggotaController extends Controller
+{
+    // Menampilkan semua anggota
+    public function index()
+    {
+        $anggotas = Anggota::all();
+        return view('anggota.index', compact('anggotas'));
+    }
+
+    // Form tambah anggota
+    public function create()
+    {
+        return view('anggota.create');
+    }
+
+    // Simpan anggota baru
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nis' => 'required|unique:anggotas',
+            'nama' => 'required',
+            'kelas' => 'required',
+            'jurusan' => 'required',
+            'username' => 'required|unique:anggotas',
+            'password' => 'required|min:6'
+        ]);
+
+        Anggota::create([
+            'nis' => $request->nis,
+            'nama' => $request->nama,
+            'kelas' => $request->kelas,
+            'jurusan' => $request->jurusan,
+            'username' => $request->username,
+            'password' => bcrypt($request->password)
+        ]);
+
+        return redirect()->route('anggota.index')->with('success', 'Anggota berhasil ditambahkan');
+    }
+
+    // Detail anggota
+    public function show(Anggota $anggota)
+    {
+        return view('anggota.show', compact('anggota'));
+    }
+
+    // Form edit anggota
+    public function edit(Anggota $anggota)
+    {
+        return view('anggota.edit', compact('anggota'));
+    }
+
+    // Update anggota
+    public function update(Request $request, Anggota $anggota)
+    {
+        $request->validate([
+            'nis' => 'required',
+            'nama' => 'required',
+            'kelas' => 'required',
+            'jurusan' => 'required',
+            'username' => 'required',
+        ]);
+
+        $anggota->update($request->all());
+        return redirect()->route('anggota.index')->with('success', 'Anggota berhasil diupdate');
+    }
+
+    // Hapus anggota
+    public function destroy(Anggota $anggota)
+    {
+        $anggota->delete();
+        return redirect()->route('anggota.index')->with('success', 'Anggota berhasil dihapus');
+    }
+}
+
+
+-php artisan make:controller TransaksiController --resource
+-php artisan make:migration create_transaksis_table
+
+
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Transaksi;
+use App\Models\Anggota;
+use App\Models\Buku;
+use Illuminate\Http\Request;
+
+class TransaksiController extends Controller
+{
+    // Menampilkan semua transaksi
+    public function index()
+    {
+        $transaksis = Transaksi::with(['anggota','buku'])->get();
+        return view('transaksi.index', compact('transaksis'));
+    }
+
+    // Form tambah transaksi
+    public function create()
+    {
+        $anggotas = Anggota::all();
+        $bukus = Buku::all();
+        return view('transaksi.create', compact('anggotas','bukus'));
+    }
+
+    // Simpan transaksi baru
+    public function store(Request $request)
+    {
+        $request->validate([
+            'anggota_id' => 'required',
+            'buku_id' => 'required',
+            'tanggal_pinjam' => 'required|date',
+            'tanggal_kembali' => 'required|date|after_or_equal:tanggal_pinjam'
+        ]);
+
+        Transaksi::create($request->all());
+        return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil ditambahkan');
+    }
+
+    // Detail transaksi
+    public function show(Transaksi $transaksi)
+    {
+        return view('transaksi.show', compact('transaksi'));
+    }
+
+    // Form edit transaksi
+    public function edit(Transaksi $transaksi)
+    {
+        $anggotas = Anggota::all();
+        $bukus = Buku::all();
+        return view('transaksi.edit', compact('transaksi','anggotas','bukus'));
+    }
+
+    // Update transaksi
+    public function update(Request $request, Transaksi $transaksi)
+    {
+        $request->validate([
+            'anggota_id' => 'required',
+            'buku_id' => 'required',
+            'tanggal_pinjam' => 'required|date',
+            'tanggal_kembali' => 'required|date|after_or_equal:tanggal_pinjam'
+        ]);
+
+        $transaksi->update($request->all());
+        return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil diupdate');
+    }
+
+    // Hapus transaksi
+    public function destroy(Transaksi $transaksi)
+    {
+        $transaksi->delete();
+        return redirect()->route('transaksi.index')->with('success', 'Transaksi berhasil dihapus');
+    }
+}
+
+-Isi file migration di database/migrations/xxxx_xx_xx_create_transaksis_table.php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('transaksis', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('anggota_id');   // relasi ke anggota
+            $table->unsignedBigInteger('buku_id');      // relasi ke buku
+            $table->date('tanggal_pinjam');
+            $table->date('tanggal_kembali')->nullable();
+            $table->timestamps();
+
+            // foreign key
+            $table->foreign('anggota_id')->references('id')->on('anggotas')->onDelete('cascade');
+            $table->foreign('buku_id')->references('id')->on('bukus')->onDelete('cascade');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('transaksis');
+    }
+};
+
+
+-Tambahkan di routes/web.php:
+
+use App\Http\Controllers\AnggotaController;
+use App\Http\Controllers\TransaksiController;
+
+Route::resource('anggota', AnggotaController::class);
+Route::resource('transaksi', TransaksiController::class);
+
+-Buat folder view untuk transaksi  
+Di dalam resources/views/, buat folder:resources/views/transaksi
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Daftar Transaksi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+    <h1>Daftar Transaksi</h1>
+    <a href="{{ route('transaksi.create') }}" class="btn btn-primary mb-3">Tambah Transaksi</a>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Anggota</th>
+                <th>Buku</th>
+                <th>Tanggal Pinjam</th>
+                <th>Tanggal Kembali</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($transaksis as $transaksi)
+            <tr>
+                <td>{{ $transaksi->id }}</td>
+                <td>{{ $transaksi->anggota->nama }}</td>
+                <td>{{ $transaksi->buku->judul }}</td>
+                <td>{{ $transaksi->tanggal_pinjam }}</td>
+                <td>{{ $transaksi->tanggal_kembali }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+</body>
+</html>
+
+
+
+
+
+CARA BUKA DESAIN SERVER
+http://127.0.0.1:8222/buku (masukin nama folder nya)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
